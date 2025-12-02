@@ -774,3 +774,263 @@ body {
 .image-uploader.has-image .activation-toggle:not(.active) {
     opacity: 1;
 }
+
+/* --- 
+Video Tab Styles --- */
+
+/* Video Player Container */
+.video-player-container {
+    flex-grow: 1;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #1a1a1a;
+    position: relative;
+    overflow: hidden;
+    min-height: 300px;
+}
+
+#video-player {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: none;
+}
+
+#video-player.has-video {
+    display: block;
+}
+
+/* Video Placeholder */
+.video-placeholder {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #666;
+    font-size: 16px;
+    text-align: center;
+    padding: 20px;
+}
+
+.video-placeholder::before {
+    content: '🎬';
+    font-size: 48px;
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
+
+.video-placeholder.hidden {
+    display: none;
+}
+
+/* Video Gallery Items */
+.video-item {
+    width: calc(50% - 5px);
+    aspect-ratio: 16 / 9;
+    position: relative;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #1a1a1a;
+    overflow: hidden;
+}
+
+.video-item:hover {
+    border-color: #007bff;
+}
+
+.video-item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+}
+
+/* Video thumbnail placeholder icon */
+.video-item .video-thumbnail-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #2a2a2a;
+    color: #666;
+    font-size: 24px;
+}
+
+/* Video item download button */
+.video-item .download-btn {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 28px;
+    height: 28px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    text-decoration: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 5;
+}
+
+.video-item:hover .download-btn {
+    opacity: 1;
+}
+
+.video-item .download-btn:hover {
+    background-color: rgba(0, 123, 255, 0.9);
+}
+
+/* Video item play icon overlay */
+.video-item::after {
+    content: '▶';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(0, 0, 0, 0.5);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+
+.video-item:hover::after {
+    opacity: 1;
+}
+
+/* Video Generate Button Loading State */
+#video-generate-btn.loading {
+    cursor: not-allowed;
+    position: relative;
+    color: transparent;
+}
+
+#video-generate-btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin-top: -10px;
+    margin-left: -10px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* Video tab specific button styles */
+#video-generate-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+}
+
+#video-settings-btn {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    background-color: #6c757d;
+    color: white;
+}
+
+#video-text-input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+
+/* --- Video Tab Image Uploaders --- */
+#video-left-panel {
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+#video-left-panel .video-uploader {
+    width: 120px;
+    height: 120px;
+}
+
+#video-left-panel .video-uploader .image-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+#video-left-panel .video-uploader .remove-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 20px;
+    height: 20px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    line-height: 20px;
+    z-index: 5;
+}
+
+#video-left-panel .video-uploader .activation-toggle {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 18px;
+    background-color: #ccc;
+    border: 2px solid white;
+    border-radius: 50%;
+    z-index: 6;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+#video-left-panel .video-uploader.has-image:hover .activation-toggle {
+    opacity: 1;
+}
+
+#video-left-panel .video-uploader .activation-toggle.active {
+    background-color: #007bff;
+}
+
+#video-left-panel .video-uploader.has-image .activation-toggle:not(.active) {
+    opacity: 1;
+}

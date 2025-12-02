@@ -73,6 +73,157 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let storedAnalysis = {}; // e.g., {'@I1Per': 'response...'}
     let modelCapabilities = {}; // Stores model capabilities (e.g., input_modalities)
+    let videoModelCapabilities = {}; // Stores video model capabilities
+
+    // --- MODEL FILTERING FUNCTIONS ---
+    /**
+     * Filters models to get only image models (excludes video)
+     * @param {Array} models - List of models from API
+     * @returns {Array} - Filtered models for images only
+     */
+    const filterImageModels = (models) => {
+        return models.filter(model => {
+            const outputs = model.output_modalities || [];
+            return outputs.includes('image') && !outputs.includes('video');
+        });
+    };
+
+    /**
+     * Filters models to get only video models
+     * @param {Array} models - List of models from API
+     * @returns {Array} - Filtered models for video
+     */
+    const filterVideoModels = (models) => {
+        return models.filter(model => {
+            const outputs = model.output_modalities || [];
+            return outputs.includes('video');
+        });
+    };
+
+    /**
+     * Checks if a model supports image input
+     * @param {string} modelName - Name of the model
+     * @param {Object} capabilities - Object with model capabilities
+     * @returns {boolean}
+     */
+    const modelSupportsImageInput = (modelName, capabilities) => {
+        const modelCaps = capabilities[modelName];
+        return modelCaps?.input_modalities?.includes('image') || false;
+    };
+
+    /**
+     * Stores model capabilities from an array of models
+     * @param {Array} models - List of models from API
+     * @param {Object} capabilitiesStore - Object to store capabilities in
+     */
+    const storeModelCapabilities = (models, capabilitiesStore) => {
+        models.forEach(model => {
+            if (model.input_modalities) {
+                capabilitiesStore[model.name] = {
+                    input_modalities: model.input_modalities
+                };
+            }
+        });
+    };
+
+    // --- VIDEO URL CONSTRUCTION ---
+    /**
+     * Builds the API URL for video generation
+     * Uses the same endpoint as image generation (/api/generate/image/) since video models
+     * are served from the same endpoint, differentiated only by the model parameter
+     * @param {Object} options - URL building options
+     * @param {string} options.prompt - Text prompt for video generation
+     * @param {string} options.model - Model name to use
+     * @param {string[]} [options.imageUrls] - Optional array of image URLs for models that support image input
+     * @param {string} [options.quality] - Quality setting (low, medium, high, hd)
+     * @param {number} [options.width] - Video width in pixels
+     * @param {number} [options.height] - Video height in pixels
+     * @param {number} [options.duration] - Video duration in seconds
+     * @returns {string} - Complete API URL for video generation
+     */
+    const buildVideoApiUrl = ({ prompt, model, imageUrls = [], quality = 'medium', width = 1024, height = 1024, duration }) => {
+        const encodedPrompt = encodeURIComponent(prompt);
+        const baseURL = `https://enter.pollinations.ai/api/generate/image/${encodedPrompt}`;
+
+        const params = new URLSearchParams({
+            model,
+            nologo: 'true',
+            private: 'true',
+            nofeed: 'true',
+            quality,
+            width: width.toString(),
+            height: height.toString()
+        });
+
+        if (duration) {
+            params.append('duration', duration.toString());
+        }
+
+        if (imageUrls.length > 0) {
+            params.append('image', imageUrls.join(','));
+        }
+
+        return `${baseURL}?${params.toString()}`;
+    };
+
+    // --- VIDEO STORE CLASS ---
+    /**
+     * @typedef {Object} VideoItem
+     * @property {string} id - Unique identifier for the video
+     * @property {string} blobUrl - Blob URL for video playback
+     * @property {string} prompt - Prompt used to generate the video
+     * @property {string} model - Model used for generation
+     * @property {Date} createdAt - Creation timestamp
+     */
+
+    /**
+     * VideoStore class for managing generated videos in memory
+     * Stores videos as blob URLs with associated metadata
+     */
+    class VideoStore {
+        constructor() {
+            this.videos = [];
+        }
+
+        /**
+         * Adds a video to the store
+         * @param {Blob} blob - Video blob data
+         * @param {string} prompt - Prompt used for generation
+         * @param {string} model - Model used for generation
+         * @returns {VideoItem} - The created video item
+         */
+        addVideo(blob, prompt, model) {
+            const item = {
+                id: `video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                blobUrl: URL.createObjectURL(blob),
+                prompt,
+                model,
+                createdAt: new Date()
+            };
+            this.videos.unshift(item);
+            return item;
+        }
+
+        /**
+         * Gets a video by its ID
+         * @param {string} id - Video ID to find
+         * @returns {VideoItem|undefined} - The video item or undefined if not found
+         */
+        getVideo(id) {
+            return this.videos.find(v => v.id === id);
+        }
+
+        /**
+         * Gets all videos in the store
+         * @returns {VideoItem[]} - Array of all video items
+         */
+        getAllVideos() {
+            return this.videos;
+        }
+    }
+
+    // Create global video store instance
+    const videoStore = new VideoStore();
 
     // --- IMAGE HOST CONFIGURATION ---
     const imageHostSelect = document.getElementById('image-host-select');
@@ -1509,30 +1660,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 llmSelect.innerHTML = '<option value="openai" selected>OpenAI (Fallback)</option>';
             }
 
-            // 2. Image models
+            // 2. Image models (filtered to exclude video models for Main tab)
             const imageSelect = document.getElementById('model-select');
 
             try {
                 const imageResponse = await fetchWithTimeout('https://enter.pollinations.ai/api/generate/image/models');
                 if (imageResponse.ok) {
                     const imageData = await imageResponse.json();
-                    const imageModels = Array.isArray(imageData) ? imageData : (imageData.data || []);
+                    const allModels = Array.isArray(imageData) ? imageData : (imageData.data || []);
+
+                    // Filter to get only image models (exclude video models) for Main tab
+                    const imageModels = filterImageModels(allModels);
 
                     if (imageModels.length > 0) {
                         imageSelect.innerHTML = '';
                         modelCapabilities = {}; // reset capabilities
+
+                        // Store capabilities for filtered image models
+                        storeModelCapabilities(imageModels, modelCapabilities);
+
                         imageModels.forEach(model => {
                             const option = document.createElement('option');
                             option.value = model.name;
                             option.textContent = model.description || model.name;
                             imageSelect.appendChild(option);
-
-                            // Save model capabilities
-                            if (model.input_modalities) {
-                                modelCapabilities[model.name] = {
-                                    input_modalities: model.input_modalities
-                                };
-                            }
                         });
 
                         // Restore image model selection
@@ -1552,6 +1703,608 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     fetchPollinationsModels();
+
+    // --- VIDEO MODEL LOADING ---
+    const fetchVideoModels = async () => {
+        const videoModelSelect = document.getElementById('video-model-select');
+        if (!videoModelSelect) return;
+
+        const fetchWithTimeout = (url, ms = 5000) => {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), ms);
+            return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(id));
+        };
+
+        try {
+            const response = await fetchWithTimeout('https://enter.pollinations.ai/api/generate/image/models');
+            if (response.ok) {
+                const data = await response.json();
+                const allModels = Array.isArray(data) ? data : (data.data || []);
+
+                // Filter to get only video models
+                const videoModels = filterVideoModels(allModels);
+
+                if (videoModels.length > 0) {
+                    videoModelSelect.innerHTML = '';
+                    videoModelCapabilities = {}; // reset video capabilities
+
+                    // Store capabilities for video models
+                    storeModelCapabilities(videoModels, videoModelCapabilities);
+
+                    videoModels.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.name;
+                        option.textContent = model.description || model.name;
+                        videoModelSelect.appendChild(option);
+                    });
+
+                    // Restore video model selection from localStorage
+                    const savedVideoModel = localStorage.getItem('videoModel');
+                    if (savedVideoModel && Array.from(videoModelSelect.options).some(opt => opt.value === savedVideoModel)) {
+                        videoModelSelect.value = savedVideoModel;
+                    }
+
+                    // Update image uploader visibility based on selected model
+                    updateVideoImageUploaders();
+                } else {
+                    videoModelSelect.innerHTML = '<option value="" disabled>No video models available</option>';
+                }
+            }
+        } catch (e) {
+            console.warn('Error loading video models:', e);
+            videoModelSelect.innerHTML = '<option value="" disabled>Error loading models</option>';
+        }
+    };
+
+    // Function to update video image uploaders visibility based on model capabilities
+    const updateVideoImageUploaders = () => {
+        const videoModelSelect = document.getElementById('video-model-select');
+        const videoLeftPanel = document.getElementById('video-left-panel');
+        if (!videoModelSelect || !videoLeftPanel) return;
+
+        const selectedModel = videoModelSelect.value;
+        const supportsImage = modelSupportsImageInput(selectedModel, videoModelCapabilities);
+
+        // Show/hide the left panel based on model capabilities
+        videoLeftPanel.style.display = supportsImage ? 'flex' : 'none';
+    };
+
+    // --- VIDEO TAB IMAGE UPLOADER LOGIC ---
+    const videoLeftPanel = document.getElementById('video-left-panel');
+
+    /**
+     * Displays an uploaded image in a video uploader container
+     * @param {string} imageUrl - URL of the uploaded image
+     * @param {HTMLElement} uploader - The uploader container element
+     * @param {string} imageHost - The image hosting service used
+     * @param {string} deleteUrl - URL for deleting the image
+     */
+    const displayVideoUploaderImage = (imageUrl, uploader, imageHost = null, deleteUrl = null) => {
+        uploader.innerHTML = '';
+        uploader.classList.add('has-image');
+        uploader.dataset.imageActive = 'true';
+
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.classList.add('image-preview');
+        img.dataset.imageHost = imageHost || getSelectedImageHost();
+        img.dataset.deleteUrl = deleteUrl || imageUrl;
+        img.draggable = true;
+
+        // Activation toggle for including/excluding image in generation
+        const activationToggle = document.createElement('div');
+        activationToggle.className = 'activation-toggle active';
+        activationToggle.title = 'Toggle for generation';
+        activationToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isActive = uploader.dataset.imageActive === 'true';
+            uploader.dataset.imageActive = !isActive;
+            activationToggle.classList.toggle('active', !isActive);
+        });
+
+        // Remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.innerHTML = '&times;';
+        removeBtn.classList.add('remove-btn');
+        removeBtn.onclick = async (e) => {
+            e.stopPropagation();
+            const host = img.dataset.imageHost;
+            if (host === 'imghippo') {
+                await handleImageRemoval('imghippo', img.dataset.deleteUrl);
+            }
+            resetVideoUploader(uploader);
+        };
+
+        uploader.appendChild(img);
+        uploader.appendChild(activationToggle);
+        uploader.appendChild(removeBtn);
+    };
+
+    /**
+     * Resets a video uploader to its initial empty state
+     * @param {HTMLElement} uploader - The uploader container element
+     */
+    const resetVideoUploader = (uploader) => {
+        const uploaderId = uploader.id.split('-')[2];
+        uploader.className = 'image-uploader video-uploader';
+        delete uploader.dataset.imageActive;
+        uploader.innerHTML = `
+            <label for="video-file-input-${uploaderId}" class="uploader-label">+</label>
+            <input type="file" id="video-file-input-${uploaderId}" class="file-input" accept="image/*">
+        `;
+    };
+
+    /**
+     * Uploads an image file for video tab uploaders
+     * @param {File} file - The image file to upload
+     * @param {HTMLElement} uploader - The uploader container element
+     */
+    const uploadVideoImage = async (file, uploader) => {
+        const selectedHost = getSelectedImageHost();
+        uploader.innerHTML = '<div class="loading-spinner"></div>';
+
+        try {
+            let result = null;
+            if (selectedHost === 'imgbb') {
+                const key = imgbbApiKey();
+                if (!key) {
+                    alert('Please add your ImgBB API Key in the Keys tab.');
+                    resetVideoUploader(uploader);
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('image', file);
+                const response = await fetch(`https://api.imgbb.com/1/upload?expiration=900&key=${key}`, { method: 'POST', body: formData });
+                if (!response.ok) throw new Error('Upload error.');
+                const data = await response.json();
+                if (data.success) {
+                    displayVideoUploaderImage(data.data.url, uploader, 'imgbb');
+                    return;
+                }
+            } else if (selectedHost === 'imghippo') {
+                const apiKey = getImgHippoApiKey();
+                if (!apiKey) {
+                    alert('Please add your ImgHippo API Key in the Keys tab.');
+                    resetVideoUploader(uploader);
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('api_key', apiKey);
+                const response = await fetch('https://api.imghippo.com/v1/upload', { method: 'POST', body: formData });
+                if (!response.ok) throw new Error('Upload error.');
+                const data = await response.json();
+                if (data.success && data.data) {
+                    displayVideoUploaderImage(data.data.view_url, uploader, 'imghippo', data.data.view_url);
+                    return;
+                }
+            } else if (selectedHost === 'cloudinary') {
+                const cloudName = getCloudinaryCloudName();
+                const uploadPreset = getCloudinaryUploadPreset();
+                if (!cloudName || !uploadPreset) {
+                    alert('Configure Cloudinary in the Keys tab.');
+                    resetVideoUploader(uploader);
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('upload_preset', uploadPreset);
+                const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: formData });
+                if (!response.ok) throw new Error('Upload error.');
+                const data = await response.json();
+                const imageUrl = data.secure_url || data.url;
+                if (imageUrl) {
+                    displayVideoUploaderImage(imageUrl, uploader, 'cloudinary', data.delete_token || imageUrl);
+                    return;
+                }
+            }
+            throw new Error('Upload failed');
+        } catch (error) {
+            console.error('Error uploading video reference image:', error);
+            uploader.innerHTML = '<span class="error-text">Error!</span>';
+            setTimeout(() => resetVideoUploader(uploader), 2000);
+        }
+    };
+
+    // Video left panel event handlers
+    if (videoLeftPanel) {
+        // File input change handler
+        videoLeftPanel.addEventListener('change', (e) => {
+            if (e.target.classList.contains('file-input')) {
+                const uploader = e.target.closest('.image-uploader');
+                if (e.target.files && e.target.files[0]) {
+                    uploadVideoImage(e.target.files[0], uploader);
+                }
+            }
+        });
+
+        // Drag and drop handlers
+        videoLeftPanel.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const uploader = e.target.closest('.image-uploader');
+            if (uploader) uploader.classList.add('drag-over');
+        });
+
+        videoLeftPanel.addEventListener('dragleave', (e) => {
+            const uploader = e.target.closest('.image-uploader');
+            if (uploader) uploader.classList.remove('drag-over');
+        });
+
+        videoLeftPanel.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const uploader = e.target.closest('.image-uploader');
+            if (uploader) {
+                uploader.classList.remove('drag-over');
+                // Handle dropped image URL
+                const imageUrl = e.dataTransfer.getData('text/plain');
+                if (imageUrl) {
+                    displayVideoUploaderImage(imageUrl, uploader);
+                }
+                // Handle dropped file
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    uploadVideoImage(e.dataTransfer.files[0], uploader);
+                }
+            }
+        });
+    }
+
+    // Function to update duration controls based on selected model
+    const updateVideoDurationControls = () => {
+        const videoModelSelect = document.getElementById('video-model-select');
+        const veoDuration = document.getElementById('video-duration-veo');
+        const seedanceDuration = document.getElementById('video-duration-seedance');
+
+        if (!videoModelSelect || !veoDuration || !seedanceDuration) return;
+
+        const selectedModel = videoModelSelect.value;
+
+        if (selectedModel === 'veo') {
+            veoDuration.style.display = 'block';
+            seedanceDuration.style.display = 'none';
+        } else if (selectedModel === 'seedance') {
+            veoDuration.style.display = 'none';
+            seedanceDuration.style.display = 'block';
+        } else {
+            veoDuration.style.display = 'none';
+            seedanceDuration.style.display = 'none';
+        }
+    };
+
+    // Video model select change handler
+    const videoModelSelect = document.getElementById('video-model-select');
+    if (videoModelSelect) {
+        videoModelSelect.addEventListener('change', () => {
+            localStorage.setItem('videoModel', videoModelSelect.value);
+            updateVideoImageUploaders();
+            updateVideoDurationControls();
+        });
+    }
+
+    // Video settings modal handlers
+    const videoSettingsBtn = document.getElementById('video-settings-btn');
+    const videoSettingsModal = document.getElementById('video-settings-modal');
+    const closeVideoModalBtn = document.getElementById('close-video-modal-btn');
+
+    if (videoSettingsBtn && videoSettingsModal) {
+        videoSettingsBtn.addEventListener('click', () => {
+            videoSettingsModal.classList.remove('hidden');
+        });
+    }
+
+    if (closeVideoModalBtn && videoSettingsModal) {
+        closeVideoModalBtn.addEventListener('click', () => {
+            videoSettingsModal.classList.add('hidden');
+        });
+    }
+
+    // Close video modal when clicking outside
+    if (videoSettingsModal) {
+        videoSettingsModal.addEventListener('click', (e) => {
+            if (e.target === videoSettingsModal) {
+                videoSettingsModal.classList.add('hidden');
+            }
+        });
+    }
+
+    // Video settings persistence
+    const videoQualitySelect = document.getElementById('video-quality-select');
+    const videoWidthInput = document.getElementById('video-width-input');
+    const videoHeightInput = document.getElementById('video-height-input');
+
+    // Load saved video settings
+    const loadVideoSettings = () => {
+        const savedQuality = localStorage.getItem('videoQuality');
+        const savedWidth = localStorage.getItem('videoWidth');
+        const savedHeight = localStorage.getItem('videoHeight');
+        const savedVeoDuration = localStorage.getItem('videoDurationVeo');
+        const savedSeedanceDuration = localStorage.getItem('videoDurationSeedance');
+
+        if (savedQuality && videoQualitySelect) {
+            videoQualitySelect.value = savedQuality;
+        }
+        if (savedWidth && videoWidthInput) {
+            videoWidthInput.value = savedWidth;
+        }
+        if (savedHeight && videoHeightInput) {
+            videoHeightInput.value = savedHeight;
+        }
+
+        const veoDurationSelect = document.getElementById('video-duration-veo-select');
+        const seedanceDurationInput = document.getElementById('video-duration-seedance-input');
+
+        if (savedVeoDuration && veoDurationSelect) {
+            veoDurationSelect.value = savedVeoDuration;
+        }
+        if (savedSeedanceDuration && seedanceDurationInput) {
+            seedanceDurationInput.value = savedSeedanceDuration;
+        }
+    };
+
+    // Save video settings on change
+    if (videoQualitySelect) {
+        videoQualitySelect.addEventListener('change', () => {
+            localStorage.setItem('videoQuality', videoQualitySelect.value);
+        });
+    }
+
+    if (videoWidthInput) {
+        videoWidthInput.addEventListener('change', () => {
+            localStorage.setItem('videoWidth', videoWidthInput.value);
+        });
+    }
+
+    if (videoHeightInput) {
+        videoHeightInput.addEventListener('change', () => {
+            localStorage.setItem('videoHeight', videoHeightInput.value);
+        });
+    }
+
+    // Save duration settings
+    const veoDurationSelect = document.getElementById('video-duration-veo-select');
+    const seedanceDurationInput = document.getElementById('video-duration-seedance-input');
+
+    if (veoDurationSelect) {
+        veoDurationSelect.addEventListener('change', () => {
+            localStorage.setItem('videoDurationVeo', veoDurationSelect.value);
+        });
+    }
+
+    if (seedanceDurationInput) {
+        seedanceDurationInput.addEventListener('change', () => {
+            localStorage.setItem('videoDurationSeedance', seedanceDurationInput.value);
+        });
+    }
+
+    // Load video settings on page load
+    loadVideoSettings();
+
+    // Load video models
+    fetchVideoModels().then(() => {
+        // Update duration controls after models are loaded
+        updateVideoDurationControls();
+    });
+
+    // --- VIDEO GENERATION LOGIC ---
+    /**
+     * Generates a video using the Pollinations API
+     * @param {Object} options - Generation options
+     * @param {string} options.prompt - Text prompt for video generation
+     * @param {string} options.model - Model name to use
+     * @param {string} options.apiKey - API key for authentication
+     * @param {string[]} [options.imageUrls] - Optional array of image URLs for models that support image input
+     * @param {string} [options.quality] - Quality setting (low, medium, high, hd)
+     * @param {number} [options.width] - Video width in pixels
+     * @param {number} [options.height] - Video height in pixels
+     * @param {number} [options.duration] - Video duration in seconds
+     * @returns {Promise<Blob>} - Video blob
+     */
+    const generateVideo = async ({ prompt, model, apiKey, imageUrls = [], quality = 'medium', width = 1024, height = 1024, duration }) => {
+        const url = buildVideoApiUrl({ prompt, model, imageUrls, quality, width, height, duration });
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${apiKey}` }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API Error: ${response.status} - ${errorText}`);
+        }
+
+        return await response.blob();
+    };
+
+    // Video generate button handler
+    const videoGenerateBtn = document.getElementById('video-generate-btn');
+    const videoTextInput = document.getElementById('video-text-input');
+    const videoPlayer = document.getElementById('video-player');
+    const videoPlaceholder = document.getElementById('video-placeholder');
+    const videoGallery = document.getElementById('video-gallery');
+
+    const handleVideoGeneration = async () => {
+        const selectedKeyType = document.querySelector('input[name="videoApiKeyType"]:checked')?.value || 'public';
+        const activeApiKey = selectedKeyType === 'public' ? pollinationsPublicApiKey() : pollinationsSecretApiKey();
+
+        if (!activeApiKey || !activeApiKey.startsWith('plln_')) {
+            alert(`Please add your Pollinations ${selectedKeyType} API Key in the Keys tab.`);
+            return;
+        }
+
+        const prompt = videoTextInput.value.trim();
+        if (!prompt) {
+            alert('Please enter a prompt for video generation.');
+            return;
+        }
+
+        const videoModelSelectEl = document.getElementById('video-model-select');
+        const selectedModel = videoModelSelectEl?.value;
+        if (!selectedModel) {
+            alert('Please select a video model.');
+            return;
+        }
+
+        // Get quality and size settings
+        const qualitySelect = document.getElementById('video-quality-select');
+        const widthInput = document.getElementById('video-width-input');
+        const heightInput = document.getElementById('video-height-input');
+
+        const quality = qualitySelect?.value || 'medium';
+        const width = parseInt(widthInput?.value) || 1024;
+        const height = parseInt(heightInput?.value) || 1024;
+
+        // Get duration based on selected model
+        let duration;
+        if (selectedModel === 'veo') {
+            const veoSelect = document.getElementById('video-duration-veo-select');
+            duration = parseInt(veoSelect?.value) || 4;
+        } else if (selectedModel === 'seedance') {
+            const seedanceInput = document.getElementById('video-duration-seedance-input');
+            duration = parseInt(seedanceInput?.value) || 5;
+        }
+
+        // Add loading state to generate button
+        videoGenerateBtn.classList.add('loading');
+        videoGenerateBtn.disabled = true;
+        videoGenerateBtn.textContent = 'Generating...';
+
+        try {
+            // Collect image URLs if model supports image input
+            const imageUrls = [];
+            const videoLeftPanel = document.getElementById('video-left-panel');
+            if (videoLeftPanel && modelSupportsImageInput(selectedModel, videoModelCapabilities)) {
+                videoLeftPanel.querySelectorAll('.image-uploader').forEach(uploader => {
+                    const img = uploader.querySelector('img.image-preview');
+                    if (img && uploader.dataset.imageActive === 'true') {
+                        imageUrls.push(img.src);
+                    }
+                });
+            }
+
+            console.log(`Generating video with model: ${selectedModel}, prompt: ${prompt}, quality: ${quality}, size: ${width}x${height}, duration: ${duration}s`);
+
+            // Generate video
+            const videoBlob = await generateVideo({
+                prompt,
+                model: selectedModel,
+                apiKey: activeApiKey,
+                imageUrls,
+                quality,
+                width,
+                height,
+                duration
+            });
+
+            // Store video in VideoStore
+            const videoItem = videoStore.addVideo(videoBlob, prompt, selectedModel);
+            console.log('Video stored:', videoItem.id);
+
+            // Update video player with new video
+            videoPlayer.src = videoItem.blobUrl;
+            videoPlayer.load();
+            videoPlaceholder.style.display = 'none';
+            videoPlayer.style.display = 'block';
+
+            // Add video to gallery
+            renderVideoGalleryItem(videoItem);
+
+        } catch (error) {
+            console.error('Error generating video:', error);
+            alert(`Video generation error: ${error.message}`);
+        } finally {
+            // Remove loading state
+            videoGenerateBtn.classList.remove('loading');
+            videoGenerateBtn.disabled = false;
+            videoGenerateBtn.textContent = 'Generate';
+        }
+    };
+
+    /**
+     * Renders a video item in the gallery
+     * Displays video thumbnail or placeholder icon with download button
+     * @param {VideoItem} videoItem - The video item to render
+     * Requirements: 6.2, 6.4
+     */
+    const renderVideoGalleryItem = (videoItem) => {
+        if (!videoGallery) return;
+
+        const galleryItem = document.createElement('div');
+        galleryItem.className = 'video-item';
+        galleryItem.dataset.videoId = videoItem.id;
+
+        // Create video thumbnail/preview
+        const videoPreview = document.createElement('video');
+        videoPreview.src = videoItem.blobUrl;
+        videoPreview.muted = true;
+        videoPreview.preload = 'metadata';
+
+        // Add error handler to show placeholder if video fails to load
+        videoPreview.addEventListener('error', () => {
+            videoPreview.style.display = 'none';
+            const placeholder = document.createElement('div');
+            placeholder.className = 'video-thumbnail-placeholder';
+            placeholder.innerHTML = '🎬';
+            galleryItem.insertBefore(placeholder, galleryItem.firstChild);
+        });
+
+        // Create download button
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'download-btn';
+        downloadBtn.innerHTML = '⬇';
+        downloadBtn.title = 'Download video';
+        downloadBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            downloadVideo(videoItem);
+        });
+
+        // Click handler to load video in main player
+        galleryItem.addEventListener('click', () => {
+            loadVideoInPlayer(videoItem);
+        });
+
+        galleryItem.appendChild(videoPreview);
+        galleryItem.appendChild(downloadBtn);
+
+        // Insert at the beginning of the gallery
+        videoGallery.insertBefore(galleryItem, videoGallery.firstChild);
+    };
+
+    /**
+     * Loads a video in the main player
+     * On gallery item click, sets video player source and shows video in central player
+     * @param {VideoItem} videoItem - The video item to load
+     * Requirements: 6.3
+     */
+    const loadVideoInPlayer = (videoItem) => {
+        if (!videoPlayer || !videoItem) return;
+
+        videoPlayer.src = videoItem.blobUrl;
+        videoPlayer.load();
+        videoPlaceholder.style.display = 'none';
+        videoPlayer.style.display = 'block';
+    };
+
+    /**
+     * Downloads a video file
+     * Creates download link from blob URL and triggers browser download on button click
+     * Uses blob URL directly without uploading to external hosts
+     * @param {VideoItem} videoItem - The video item to download
+     * Requirements: 7.1, 7.2
+     */
+    const downloadVideo = (videoItem) => {
+        if (!videoItem || !videoItem.blobUrl) return;
+
+        const link = document.createElement('a');
+        link.href = videoItem.blobUrl;
+        link.download = `${videoItem.id}.mp4`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    // Attach event listener to video generate button
+    if (videoGenerateBtn) {
+        videoGenerateBtn.addEventListener('click', handleVideoGeneration);
+    }
 
     // --- GENERATION LOGIC (ELEMENT 12) ---
     const generateBtn = document.getElementById('generate-btn');
@@ -1604,6 +2357,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // Image quality localStorage
+    const qualitySelect = document.getElementById('quality-select');
+    if (qualitySelect) {
+        // Load saved quality
+        const savedQuality = localStorage.getItem('imageQuality');
+        if (savedQuality) {
+            qualitySelect.value = savedQuality;
+        }
+
+        // Save quality on change
+        qualitySelect.addEventListener('change', () => {
+            localStorage.setItem('imageQuality', qualitySelect.value);
+        });
+    }
+
     const generateImage = async () => {
         const selectedKeyType = document.querySelector('input[name="apiKeyType"]:checked').value;
         const activeApiKey = selectedKeyType === 'public' ? pollinationsPublicApiKey() : pollinationsSecretApiKey();
@@ -1635,7 +2403,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 [width, height] = [widthInput.value, heightInput.value];
             }
 
-            const params = new URLSearchParams({ model: selectedModel, width, height, nologo: 'true', private: 'true' });
+            const params = new URLSearchParams({
+                model: selectedModel,
+                width,
+                height,
+                nologo: 'true',
+                private: 'true',
+                nofeed: 'true'
+            });
+
+            // Add quality parameter
+            const qualitySelect = document.getElementById('quality-select');
+            if (qualitySelect && qualitySelect.value) {
+                params.append('quality', qualitySelect.value);
+            }
 
             if (seedToggle.checked && seedInput.value) {
                 params.append('seed', seedInput.value);

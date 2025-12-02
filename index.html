@@ -14,6 +14,7 @@
         <!-- Tabs 14 and 15 -->
         <div class="tabs">
             <button class="tab-button active" data-tab="principal">Main</button>
+            <button class="tab-button" data-tab="video">Video</button>
             <button class="tab-button" data-tab="configuracion">Settings</button>
             <button class="tab-button" data-tab="keys">Keys</button>
         </div>
@@ -100,6 +101,46 @@
             <div class="right-panel">
                 <div id="dynamic-container" class="dynamic-container">
                     <!-- The image containers will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Video Tab Content -->
+        <div class="tab-content" id="video">
+            <!-- Left Panel: Image Uploaders (for models that support it) -->
+            <div class="left-panel" id="video-left-panel" style="display: none;">
+                <div id="video-uploader-1" class="image-uploader video-uploader">
+                    <label for="video-file-input-1" class="uploader-label">+</label>
+                    <input type="file" id="video-file-input-1" class="file-input" accept="image/*">
+                </div>
+                <div id="video-uploader-2" class="image-uploader video-uploader">
+                    <label for="video-file-input-2" class="uploader-label">+</label>
+                    <input type="file" id="video-file-input-2" class="file-input" accept="image/*">
+                </div>
+            </div>
+
+            <!-- Central Panel: Video Player -->
+            <div class="main-panel">
+                <div class="video-player-container">
+                    <video id="video-player" controls>
+                        <source src="" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <div id="video-placeholder" class="video-placeholder">
+                        <span>No video loaded</span>
+                    </div>
+                </div>
+                <div class="prompt-area">
+                    <input type="text" id="video-text-input" placeholder="Describe your video...">
+                    <button id="video-settings-btn">⚙️</button>
+                    <button id="video-generate-btn">Generate</button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Video Gallery -->
+            <div class="right-panel">
+                <div id="video-gallery" class="dynamic-container">
+                    <!-- Video items added dynamically -->
                 </div>
             </div>
         </div>
@@ -262,8 +303,82 @@
             </div>
 
             <div class="form-group">
+                <label for="quality-select">Quality:</label>
+                <select id="quality-select">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                    <option value="hd">HD</option>
+                </select>
+            </div>
+
+            <div class="form-group">
                 <label for="negative-prompt-input">Negative Prompt:</label>
                 <textarea id="negative-prompt-input" rows="3" placeholder="Concepts to avoid..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Settings Modal -->
+    <div id="video-settings-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button id="close-video-modal-btn" class="close-btn">&times;</button>
+            <h2>Video Generation Settings</h2>
+
+            <div class="form-group">
+                <label for="video-model-select">Model:</label>
+                <select id="video-model-select">
+                    <option value="" disabled selected>Loading models...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>API Key to use:</label>
+                <div class="api-key-options">
+                    <label>
+                        <input type="radio" name="videoApiKeyType" value="public" checked> Public
+                    </label>
+                    <label>
+                        <input type="radio" name="videoApiKeyType" value="secret"> Secret
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="video-quality-select">Quality:</label>
+                <select id="video-quality-select">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                    <option value="hd">HD</option>
+                </select>
+            </div>
+
+            <div class="form-group-inline">
+                <div class="form-group">
+                    <label for="video-width-input">Width:</label>
+                    <input type="number" id="video-width-input" value="1024" step="64" min="256" max="2048">
+                </div>
+                <div class="form-group">
+                    <label for="video-height-input">Height:</label>
+                    <input type="number" id="video-height-input" value="1024" step="64" min="256" max="2048">
+                </div>
+            </div>
+
+            <!-- Duration for veo model (4, 6, or 8 seconds) -->
+            <div class="form-group" id="video-duration-veo" style="display: none;">
+                <label for="video-duration-veo-select">Duration (seconds):</label>
+                <select id="video-duration-veo-select">
+                    <option value="4" selected>4</option>
+                    <option value="6">6</option>
+                    <option value="8">8</option>
+                </select>
+            </div>
+
+            <!-- Duration for seedance model (2-10 seconds) -->
+            <div class="form-group" id="video-duration-seedance" style="display: none;">
+                <label for="video-duration-seedance-input">Duration (2-10 seconds):</label>
+                <input type="number" id="video-duration-seedance-input" value="5" min="2" max="10" step="1">
             </div>
         </div>
     </div>
