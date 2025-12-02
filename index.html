@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chimera Studio</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="app-container">
+        <!-- Tabs 14 and 15 -->
+        <div class="tabs">
+            <button class="tab-button active" data-tab="principal">Main</button>
+            <button class="tab-button" data-tab="configuracion">Settings</button>
+            <button class="tab-button" data-tab="keys">Keys</button>
+        </div>
+
+        <!-- Content of the tabs -->
+        <div class="tab-content active" id="principal">
+            <!-- Left Column (1, 2, 3 and more) -->
+            <div class="left-panel" id="left-panel">
+                <div id="uploader-1" class="image-uploader">
+                    <button class="remove-uploader-btn" title="Remove container">&times;</button>
+                    <label for="file-input-1" class="uploader-label">+</label>
+                    <input type="file" id="file-input-1" class="file-input" accept="image/*">
+                    <div class="hover-actions">
+                        <button class="action-btn" title="Character" data-type="character">P</button>
+                        <button class="action-btn" title="Scene" data-type="scene">E</button>
+                        <button class="action-btn" title="Style" data-type="style">S</button>
+                        <button class="action-btn" title="Custom" data-type="custom">C</button>
+                    </div>
+                    <div class="custom-input-container">
+                        <input type="text" class="custom-text-input" placeholder="Prompt..." spellcheck="false">
+                    </div>
+                </div>
+                <div id="uploader-2" class="image-uploader">
+                    <button class="remove-uploader-btn" title="Remove container">&times;</button>
+                    <label for="file-input-2" class="uploader-label">+</label>
+                    <input type="file" id="file-input-2" class="file-input" accept="image/*">
+                    <div class="hover-actions">
+                        <button class="action-btn" title="Character" data-type="character">P</button>
+                        <button class="action-btn" title="Scene" data-type="scene">E</button>
+                        <button class="action-btn" title="Style" data-type="style">S</button>
+                        <button class="action-btn" title="Custom" data-type="custom">C</button>
+                    </div>
+                    <div class="custom-input-container">
+                        <input type="text" class="custom-text-input" placeholder="Prompt..." spellcheck="false">
+                    </div>
+                </div>
+                <div id="uploader-3" class="image-uploader">
+                    <button class="remove-uploader-btn" title="Remove container">&times;</button>
+                    <label for="file-input-3" class="uploader-label">+</label>
+                    <input type="file" id="file-input-3" class="file-input" accept="image/*">
+                    <div class="hover-actions">
+                        <button class="action-btn" title="Character" data-type="character">P</button>
+                        <button class="action-btn" title="Scene" data-type="scene">E</button>
+                        <button class="action-btn" title="Style" data-type="style">S</button>
+                        <button class="action-btn" title="Custom" data-type="custom">C</button>
+                    </div>
+                    <div class="custom-input-container">
+                        <input type="text" class="custom-text-input" placeholder="Prompt..." spellcheck="false">
+                    </div>
+                </div>
+                <button id="add-uploader-btn" class="add-uploader-btn" title="Add container">+</button>
+            </div>
+
+            <!-- Central Panel (4, 11, 12, 13) -->
+            <div class="main-panel">
+                <div id="main-viewer" class="main-viewer-container">
+                    <div id="editor-container" class="editor-container">
+                        <canvas id="editor-canvas"></canvas>
+                        <div id="editor-toolbar" class="editor-toolbar">
+                            <button id="tool-pencil" title="Pencil">✏️</button>
+                            <button id="tool-eraser" title="Eraser">🩹</button>
+                            <input id="brush-color" type="color" value="#ff0000" title="Color" />
+                            <input id="brush-size" type="range" min="1" max="40" value="5" title="Size" />
+                            <button id="reset-zoom-btn" title="Reset zoom">🔄</button>
+                            <button id="save-canvas-btn" class="primary" title="Save changes">Save
+                                changes</button>
+                        </div>
+                        <div id="overlay-toolbar" class="overlay-toolbar hidden">
+                            <button id="overlay-flip-h" title="Flip horizontal">↔</button>
+                            <button id="overlay-flip-v" title="Flip vertical">↕</button>
+                            <button id="overlay-remove-bg" title="Remove background">BG−</button>
+                            <button id="overlay-delete" title="Delete layer">✖</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="prompt-area">
+                    <input type="text" id="text-input" placeholder="Enter your prompt here...">
+                    <button id="settings-btn">⚙️</button>
+                    <button id="generate-btn">Generate</button>
+                </div>
+            </div>
+
+            <!-- Right Column (5 and its children) -->
+            <div class="right-panel">
+                <div id="dynamic-container" class="dynamic-container">
+                    <!-- The image containers will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content config-layout" id="configuracion">
+            <div class="config-panel">
+                <h2>Settings</h2>
+
+                <div class="config-section">
+                    <h3>Image Host</h3>
+                    <div class="form-group">
+                        <label for="image-host-select">Storage service:</label>
+                        <select id="image-host-select">
+                            <option value="imgbb">ImgBB (Auto-delete in 15 min)</option>
+                            <option value="imghippo">ImgHippo (Manual deletion)</option>
+                            <option value="cloudinary">Cloudinary (unsigned preset)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h3>Image Analysis (LLM)</h3>
+                    <div class="form-group">
+                        <label for="llm-provider-select">Provider:</label>
+                        <select id="llm-provider-select">
+                            <option value="pollinations">Pollinations (current)</option>
+                            <option value="google">Google Gemini</option>
+                        </select>
+                        <small class="hint-text">Select API for analysis.</small>
+                    </div>
+
+                    <!-- Settings for Pollinations -->
+                    <div class="form-group" id="pollinations-settings">
+                        <label for="llm-model-select">Model (Pollinations):</label>
+                        <select id="llm-model-select">
+                            <option value="" disabled selected>Loading models...</option>
+                        </select>
+                        <small class="hint-text">Models available on Pollinations.</small>
+                    </div>
+
+                    <!-- Settings for Google Gemini -->
+                    <div class="form-group hidden" id="gemini-model-group">
+                        <label for="gemini-model-select">Model (Google Gemini):</label>
+                        <select id="gemini-model-select">
+                            <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+                            <option value="gemini-2.5-flash-lite-preview-09-2025">gemini-2.5-flash-lite-preview-09-2025
+                            </option>
+                            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                            <option value="gemini-2.5-flash-preview-09-2025">gemini-2.5-flash-preview-09-2025</option>
+                            <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+                            <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                        </select>
+                        <small class="hint-text">Native Google vision and text models.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content config-layout" id="keys">
+            <div class="config-panel">
+                <h2>API Keys</h2>
+                <p class="hint-text">These keys are stored locally in your browser.</p>
+
+                <div class="config-section">
+                    <h3>Image Hosting</h3>
+                    <div class="form-group">
+                        <label for="key-imgbb">ImgBB API Key:</label>
+                        <input type="password" id="key-imgbb" placeholder="Ex: 392... (Optional)">
+                    </div>
+                    <div class="form-group">
+                        <label for="key-imghippo">ImgHippo API Key:</label>
+                        <input type="password" id="key-imghippo" placeholder="Ex: 582... (Optional)">
+                    </div>
+                    <div class="form-group">
+                        <label for="key-cloudinary-name">Cloudinary Cloud Name:</label>
+                        <input type="text" id="key-cloudinary-name" placeholder="Ex: dxx...">
+                    </div>
+                    <div class="form-group">
+                        <label for="key-cloudinary-preset">Cloudinary Upload Preset:</label>
+                        <input type="text" id="key-cloudinary-preset" placeholder="Ex: unsigned_preset">
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h3>LLM Models</h3>
+                    <div class="form-group">
+                        <label for="key-pollinations-public">Pollinations Public Key:</label>
+                        <input type="text" id="key-pollinations-public" placeholder="Optional rate limits">
+                    </div>
+                    <div class="form-group">
+                        <label for="key-pollinations-secret">Pollinations Secret Key:</label>
+                        <input type="password" id="key-pollinations-secret"
+                            placeholder="Optional (only recomended for testing)">
+                    </div>
+                    <div class="form-group">
+                        <label for="key-gemini">Google Gemini API Key:</label>
+                        <input type="password" id="key-gemini" placeholder="Ex: AIza...">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <button id="save-keys-btn" class="primary">Save Keys</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Configuración -->
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button id="close-modal-btn" class="close-btn">&times;</button>
+            <h2>Generation Settings</h2>
+
+            <div class="form-group">
+                <label for="model-select">Model:</label>
+                <select id="model-select">
+                    <option value="" disabled selected>Loading models...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>API Key to use:</label>
+                <div class="api-key-options">
+                    <label>
+                        <input type="radio" name="apiKeyType" value="public" checked> Public
+                    </label>
+                    <label>
+                        <input type="radio" name="apiKeyType" value="secret"> Secret
+                    </label>
+                </div>
+            </div>
+
+            <!-- Container for generic sizes -->
+            <div id="size-inputs-generic" class="form-group-inline">
+                <div class="form-group">
+                    <label for="width-input">Width:</label>
+                    <input type="number" id="width-input" value="1024" step="64">
+                </div>
+                <div class="form-group">
+                    <label for="height-input">Height:</label>
+                    <input type="number" id="height-input" value="1024" step="64">
+                </div>
+            </div>
+
+            <!-- Container for GPTImage sizes -->
+            <div id="size-select-gpt" class="form-group hidden">
+                <label for="gpt-size-select">Size:</label>
+                <select id="gpt-size-select">
+                    <option value="1024x1024">1024x1024</option>
+                    <option value="1024x1536">1024x1536</option>
+                    <option value="1536x1024">1536x1024</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="seed-toggle"> Use fixed seed
+                </label>
+                <input type="number" id="seed-input" value="42" class="hidden">
+            </div>
+
+            <div class="form-group">
+                <label for="negative-prompt-input">Negative Prompt:</label>
+                <textarea id="negative-prompt-input" rows="3" placeholder="Concepts to avoid..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js"></script>
+
+    <!-- Load prompts first to make them available globally -->
+    <script src="prompts/character.js"></script>
+    <script src="prompts/scene.js"></script>
+    <script src="prompts/style.js"></script>
+    <script src="prompts/custom.js"></script>
+
+    <!-- Then load the main script that uses them -->
+    <script src="script.js"></script>
+</body>
+
+</html>
