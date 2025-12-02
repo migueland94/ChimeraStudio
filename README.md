@@ -1,6 +1,6 @@
 # ChimeraStudio
 
-Chimera Studio is a simple sandbox for the Pollinations.ai API. This lightweight, client-side web application serves as an all-in-one testing ground for AI-powered image generation, computer vision model analysis, and editing. Run it directly in your browser to freely explore everything the API can do.
+Chimera Studio is a simple sandbox for the Pollinations.ai API. This lightweight, client-side web application serves as an all-in-one testing ground for AI-powered **image and video generation**, computer vision model analysis, and editing. Run it directly in your browser to freely explore everything the API can do.
 
 Since it runs entirely on the client side (HTML/JS/CSS), no backend installation is required. Your API keys and settings are stored locally in your browser, ensuring privacy and ease of use.
 
@@ -14,7 +14,14 @@ Since it runs entirely on the client side (HTML/JS/CSS), no backend installation
 *   **Image-to-Image:** Use uploaded images as references for generation.
 *   **Custom Settings:** Control aspect ratio (width/height), seed, and negative prompts.
 
-### Visual Analysis (Computer Vision)
+### 🎬 Video Generation (New!)
+
+*   **Multi-Model Support:** Access various text-to-video and image-to-video models from Pollinations (e.g., Veo, Seedance).
+*   **Image-to-Video:** For models that support it, you can upload reference images to guide the video generation process.
+*   **Custom Settings:** Fine-tune your videos with controls for aspect ratio (width/height), quality, and duration.
+*   **In-Browser Gallery:** Generated videos are stored locally and displayed in a gallery for easy previewing, playback, and direct download.
+
+### 👁️ Visual Analysis (Computer Vision)
 
 *   **AI Scanning:** Analyze uploaded images to extract detailed prompts.
 *   **Modes:**
@@ -60,42 +67,51 @@ That's it! The app is ready to use.
 
 To unlock the full potential of Chimera Studio, you need to configure a few API keys in the "Keys" tab. All keys are stored in your browser's LocalStorage.
 
-| Service        | Purpose                       | Required?                                                    |
-| :------------- | :---------------------------- | :----------------------------------------------------------- |
-| Pollinations   | Image Generation              | **Yes**                                                      |
-| Google Gemini  | Image Analysis (Vision)       | Optional (For llms)                                          |
-| ImgBB          | Image Hosting                 | Optional (auto delete in 15 minutes, sometimes slow)         |
+| Service        | Purpose                       | Required?                                                      |
+| :------------- | :---------------------------- | :--------------------------------------------------------------|
+| Pollinations   | Image & Video Generation      | **Yes**                                                        |
+| Google Gemini  | Image Analysis (Vision)       | Optional (For llms)                                            |
+| ImgBB          | Image Hosting                 | Optional (auto delete in 15 minutes, sometimes slow)           |
 | ImgHippo       | Image Hosting                 | Optional (auto delete when you close an image, sometimes slow) |
-| Cloudinary     | Image Hosting                 | Optional (Fastest, manual removal, good free plan)           |
+| Cloudinary     | Image Hosting                 | Optional (Fastest, manual removal, good free plan)             |
 
-*\*Almost one image hosting service is required.*
+*\*At least one image hosting service is required.*
 
 ## 📖 Usage Guide
 
-### 1. The Workflow
+### 1. The Image Workflow
 
-*   **Left Panel:** Upload reference images.
+*   **Left Panel:** Upload reference images in the "Main" tab.
 *   **Analysis:** Click the small buttons (P, E, S, C) on an uploaded image to analyze it. The result is saved internally.
-    *\*you need select a model with a vision input*
+    *\*You need to select a model with vision input capability for analysis.*
 *   **Prompting:** In the main text box, type your prompt. You can reference previous analyses by typing `@` to open the autocomplete menu.
 *   **Generation:** Click "Generate". The result will appear in the Right Panel.
-*   **Input images:** You can activate or deactivate the images in the left panel by clicking the blue icon that appears when you hover your cursor over it.
+*   **Input Images:** You can activate or deactivate images in the left panel by clicking the blue icon that appears when you hover over them.
 
-### 2. Editing
+### 2. The Video Workflow (New!)
+
+*   **Switch Tab:** Click on the "Video" tab.
+*   **Prompting:** Enter a descriptive prompt for the video you want to create in the main text box.
+*   **(Optional) Image Input:** If the selected video model supports image inputs, the left panel will be visible. You can upload one or more reference images here.
+*   **Settings:** Click the `⚙️` icon to open the video settings modal and adjust parameters like the model, quality, dimensions, and duration.
+*   **Generation:** Click "Generate". The process may take some time.
+*   **Playback & Download:** Once finished, the video will appear in the main player, and a thumbnail will be added to the gallery on the right. You can click gallery items to play them or use the download button to save the MP4 file directly to your computer.
+
+### 3. Editing on the Canvas
 
 *   Click on any generated image in the Right Panel or an uploaded image in the Left Panel to send it to the Main Canvas.
 *   Drag and drop any image onto the canvas to add it as an element.
 *   Use the toolbar to draw, erase, or adjust layers.
 *   **Background Removal:** Select an image on the canvas and click **BG−** to remove the background using AI.
 *   **Save:** Click "Save changes" to render the composition back to the gallery.
-    *\*This is important: the canvas is only visual until you save the image. After saving it, you can drag and drop it into a container on the left to use it as input.*
+    *\*This is important: the canvas is only visual until you save the image. After saving it, you can drag and drop it into a container on the left to use it as new input.*
 
 ## 🛠️ Built With
 
 *   HTML5 / CSS3 / Vanilla JavaScript
 *   [Fabric.js](http://fabricjs.com/) - For the interactive canvas editor.
 *   [MediaPipe Selfie Segmentation](https://google.github.io/mediapipe/solutions/selfie_segmentation) - For background removal.
-*   [Pollinations.ai](https://pollinations.ai/) - The core AI generation engine.
+*   [Pollinations.ai](https://pollinations.ai/) - The core AI generation engine for images and video.
 
 ## 📄 License
 
