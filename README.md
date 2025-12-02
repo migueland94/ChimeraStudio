@@ -4,6 +4,8 @@ Chimera Studio is a simple sandbox for the Pollinations.ai API. This lightweight
 
 Since it runs entirely on the client side (HTML/JS/CSS), no backend installation is required. Your API keys and settings are stored locally in your browser, ensuring privacy and ease of use.
 
+![ChimeraStudio canvas example](https://i.imghippo.com/files/Agv9640ZBQ.png)
+
 ## ✨ Key Features
 
 ### 🎨 Image Generation
